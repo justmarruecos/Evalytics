@@ -1,6 +1,7 @@
 import pandas as pd
 import json
 
+
 def load_data(source="local"):
     if source == "url":
         url = "https://edumail.fr/formations/realtimedata.json"
@@ -29,15 +30,18 @@ def load_data(source="local"):
     df_cf = []
     for format_type, stats in cf.items():
         for status, count in stats.items():
-            df_cf.append({"format_cours": format_type, "certifie": status, "nombre": count})
+            certifie = "oui" if status == "pass" else "non"
+            df_cf.append({"format_cours": format_type, "certifie": certifie, "nombre": count})
     datasets["courseFormat"] = pd.DataFrame(df_cf)
 
     # 3. Mi-parcours
     midterm = data.get("midtermScores", {})
     a_scores = midterm.get("class_A", [])
     b_scores = midterm.get("class_B", [])
-    df_mid = pd.DataFrame({"classe": ["A"] * len(a_scores) + ["B"] * len(b_scores),
-                           "note_mi_parcours": a_scores + b_scores})
+    df_mid = pd.DataFrame({
+        "classe": ["A"] * len(a_scores) + ["B"] * len(b_scores),
+        "note_mi_parcours": a_scores + b_scores
+    })
     datasets["midtermScores"] = df_mid
 
     # 4. Approche pédagogique
@@ -52,8 +56,13 @@ def load_data(source="local"):
     ct = data.get("completionTimes", {})
     rows = []
     for niveau, temps in ct.items():
+        label = {
+            "None": "Sans support",
+            "Simple": "Support basique",
+            "Advanced": "Support détaillé"
+        }.get(niveau, niveau)
         for val in temps:
-            rows.append({"niveau_support": niveau, "temps_achevement": val})
+            rows.append({"niveau_support": label, "temps_achevement": val})
     datasets["completionTimes"] = pd.DataFrame(rows)
 
     return datasets

@@ -1,84 +1,59 @@
 import dash
 from dash import dcc, html
-from dash.dependencies import Input, Output
+import dash_bootstrap_components as dbc
 
+# Modules internes
 from utils import load_data
 import analyses
+import layout
 
-# Initialisation de l'app
-app = dash.Dash(__name__)
-app.title = "Analyse pédagogique"
-server = app.server  # Pour déploiement si besoin
+# Initialisation de l'application Dash avec un thème professionnel
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.LUX])
+app.title = "Tableau de bord Edutech+"
+server = app.server  # nécessaire pour déploiement éventuel
 
-# Chargement des données depuis fichier local
-datasets = load_data(source="local")
+def serve_layout():
+    """Génère le layout dynamique à chaque ouverture, en rechargeant les données."""
+    # 1. Chargement des données depuis le JSON en ligne, avec repli local
+    datasets = load_data(source="url")
+    if not datasets or "studyCorrelation" not in datasets:
+        print("⚠️ Échec du chargement en ligne, utilisation des données locales.")
+        datasets = load_data(source="local")
 
-# Accès aux différents DataFrames
-df_corr = datasets["studyCorrelation"]
-df_format = datasets["courseFormat"]
-df_mid = datasets["midtermScores"]
-df_appr = datasets["approachGains"]
-df_time = datasets["completionTimes"]
+    # Extraction des DataFrames préparés
+    df_corr = datasets["studyCorrelation"]
+    df_format = datasets["courseFormat"]
+    df_mid = datasets["midtermScores"]
+    df_appr = datasets["approachGains"]
+    df_time = datasets["completionTimes"]
 
-# Définition du layout de l'application
-app.layout = html.Div([
-    html.H1("Dashboard d’analyse pédagogique", style={'textAlign': 'center'}),
+    # 2. Calcul des visualisations et des conclusions statistiques
+    fig_corr, conclusion_corr = analyses.correlation_study_hours(df_corr)
+    fig_format, conclusion_format = analyses.success_by_course_format(df_format)
+    fig_mid, conclusion_mid = analyses.compare_midterm_scores(df_mid)
+    fig_appr, conclusion_appr = analyses.analyse_gains_par_methode(df_appr)
+    fig_time, conclusion_time = analyses.temps_achevement_par_support(df_time)
 
-    dcc.Tabs(id="tabs", value="tab-1", children=[
-        dcc.Tab(label="Heures d’étude vs Score", value="tab-1"),
-        dcc.Tab(label="Format de cours vs Certification", value="tab-2"),
-        dcc.Tab(label="Comparaison Classe A/B", value="tab-3"),
-        dcc.Tab(label="Progression par Méthode", value="tab-4"),
-        dcc.Tab(label="Temps d’Achèvement", value="tab-5"),
-    ]),
+    # 3. Construction du layout complet avec les figures et textes générés
+    figures = {
+        "corr": fig_corr,
+        "format": fig_format,
+        "classes": fig_mid,
+        "methods": fig_appr,
+        "support": fig_time
+    }
+    texts = {
+        "corr": conclusion_corr,
+        "format": conclusion_format,
+        "classes": conclusion_mid,
+        "methods": conclusion_appr,
+        "support": conclusion_time
+    }
 
-    html.Div(id="tab-content")
-])
+    return layout.make_layout(figures, texts)
 
+# Affecter dynamiquement le layout à chaque chargement de la page
+app.layout = serve_layout
 
-# Callbacks pour afficher le contenu selon l’onglet choisi
-@app.callback(Output("tab-content", "children"),
-              Input("tabs", "value"))
-def render_content(tab):
-    if tab == "tab-1":
-        fig, conclusion = analyses.correlation_study_hours(df_corr)
-        return html.Div([
-            html.H3("Corrélation entre les heures d’étude et le score"),
-            dcc.Graph(figure=fig),
-            html.P(conclusion)
-        ])
-    elif tab == "tab-2":
-        fig, conclusion = analyses.success_by_course_format(df_format)
-        return html.Div([
-            html.H3("Impact du format de cours sur la certification"),
-            dcc.Graph(figure=fig),
-            html.P(conclusion)
-        ])
-    elif tab == "tab-3":
-        fig, conclusion = analyses.compare_midterm_scores(df_mid)
-        return html.Div([
-            html.H3("Scores de mi-parcours : Classe A vs Classe B"),
-            dcc.Graph(figure=fig),
-            html.P(conclusion)
-        ])
-    elif tab == "tab-4":
-        fig, conclusion = analyses.analyse_gains_par_methode(df_appr)
-        return html.Div([
-            html.H3("Progression moyenne selon la méthode pédagogique"),
-            dcc.Graph(figure=fig),
-            html.P(conclusion)
-        ])
-    elif tab == "tab-5":
-        fig, conclusion = analyses.temps_achevement_par_support(df_time)
-        return html.Div([
-            html.H3("Temps d’achèvement selon le support pédagogique"),
-            dcc.Graph(figure=fig),
-            html.P(conclusion)
-        ])
-    else:
-        return html.Div([html.H3("Onglet inconnu.")])
-
-
-# Exécution de l'application
 if __name__ == "__main__":
     app.run(debug=True)
