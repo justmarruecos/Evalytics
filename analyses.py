@@ -30,7 +30,7 @@ def correlation_study_hours(df):
 
     conclusion = (
         f"Le nombre d’heures d’étude hebdomadaires et le score final sont corrélés positivement (r = {corr:.2f}). "
-        f"La relation est statistiquement {'significative' if p_value < 0.05 else 'non significative'} (p = {p_value:.4f}). "
+        f"La relation est statistiquement {'significative' if p_value < 0.05 else 'non significative'} (p = {'< 0.0001' if p_value < 0.0001 else f'{p_value:.4f}'}). "
         + ("Cela suggère que les étudiants qui étudient plus ont tendance à obtenir de meilleurs scores."
            if p_value < 0.05 else
            "On ne peut pas conclure qu’un plus grand nombre d’heures d’étude améliore le score.")
@@ -65,7 +65,7 @@ def compare_midterm_scores(df):
                  labels={'classe': 'Classe', 'note_mi_parcours': 'Note'})
     conclusion = (
         f"La classe A a une moyenne de {a.mean():.2f}, la classe B une moyenne de {b.mean():.2f}. "
-        f"La différence est {'significative' if pval < 0.05 else 'non significative'} (p = {pval:.4f}). "
+        f"La différence est {'significative' if pval < 0.05 else 'non significative'} (p = {'< 0.0001' if pval < 0.0001 else f'{pval:.4f}'}). "
         + ("Cela peut refléter un déséquilibre pédagogique ou organisationnel."
            if pval < 0.05 else
            "Les performances sont équivalentes entre les deux classes.")
@@ -84,7 +84,7 @@ def analyse_gains_par_methode(df):
     meilleur = means.idxmax()
     conclusion = (
         f"La progression moyenne varie selon les méthodes. La méthode {meilleur} montre les meilleurs gains avec {means.max():.2f} points en moyenne. "
-        f"L’ANOVA indique que cette différence est {'significative' if pval < 0.05 else 'non significative'} (p = {pval:.4f}). "
+        f"L’ANOVA indique que cette différence est {'significative' if pval < 0.05 else 'non significative'} (p = {'< 0.0001' if pval < 0.0001 else f'{pval:.4f}'}). "
         + ("Il est conseillé d’explorer les bonnes pratiques de cette méthode pour en tirer des leçons pédagogiques."
            if pval < 0.05 else
            "Aucune méthode ne se démarque clairement en termes d’efficacité.")
@@ -103,7 +103,7 @@ def temps_achevement_par_support(df):
     plus_rapide = group_means.idxmin()
     conclusion = (
         f"Les apprenants avec un support '{plus_rapide}' terminent les exercices en moyenne plus rapidement ({group_means.min():.1f} min). "
-        f"L’analyse statistique montre que ces différences sont {'significatives' if pval < 0.05 else 'non significatives'} (p = {pval:.4f}). "
+        f"L’analyse statistique montre que ces différences sont {'significatives' if pval < 0.05 else 'non significatives'} (p = {'< 0.0001' if pval < 0.0001 else f'{pval:.4f}'}). "
         + ("Cela confirme l’intérêt d’un accompagnement pédagogique adapté."
            if pval < 0.05 else
            "Le niveau de support n’a pas d’impact statistique fort sur la rapidité d’achèvement.")
