@@ -1,14 +1,33 @@
 import pandas as pd
 import plotly.express as px
 from scipy.stats import pearsonr, ttest_ind, f_oneway
+import numpy as np
+import plotly.graph_objects as go
 
 # 1. Corrélation heures d’étude / score
 def correlation_study_hours(df):
     df = df.dropna(subset=['heures_etude', 'score_final'])
     corr, p_value = pearsonr(df['heures_etude'], df['score_final'])
-    fig = px.scatter(df, x='heures_etude', y='score_final', trendline='ols',
-                     title='Heures d’étude vs Score final',
-                     labels={'heures_etude': 'Heures d’étude', 'score_final': 'Score final'})
+
+    # Régression linéaire manuelle
+    x = df['heures_etude']
+    y = df['score_final']
+    a, b = np.polyfit(x, y, 1)  # pente (a), intercept (b)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=x, y=y, mode='markers', name='Étudiants',
+                             marker=dict(color='blue'), 
+                             hovertemplate='Heures: %{x}<br>Score: %{y}'))
+
+    fig.add_trace(go.Scatter(x=[x.min(), x.max()],
+                             y=[a * x.min() + b, a * x.max() + b],
+                             mode='lines', name='Tendance',
+                             line=dict(color='red', dash='dash')))
+
+    fig.update_layout(title='Heures d’étude vs Score final',
+                      xaxis_title='Heures d’étude',
+                      yaxis_title='Score final')
+
     conclusion = (
         f"Le nombre d’heures d’étude hebdomadaires et le score final sont corrélés positivement (r = {corr:.2f}). "
         f"La relation est statistiquement {'significative' if p_value < 0.05 else 'non significative'} (p = {p_value:.4f}). "
@@ -16,6 +35,7 @@ def correlation_study_hours(df):
            if p_value < 0.05 else
            "On ne peut pas conclure qu’un plus grand nombre d’heures d’étude améliore le score.")
     )
+
     return fig, conclusion
 
 # 2. Présentiel vs distanciel → taux de certification
