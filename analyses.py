@@ -1,6 +1,6 @@
 import pandas as pd
 import plotly.express as px
-from scipy.stats import pearsonr, ttest_ind, f_oneway
+from scipy.stats import pearsonr, ttest_ind, f_oneway, chi2_contingency
 import numpy as np
 import plotly.graph_objects as go
 
@@ -40,19 +40,35 @@ def correlation_study_hours(df):
 
 # 2. Présentiel vs distanciel → taux de certification
 def success_by_course_format(df):
-    pivot = df.pivot_table(index='format_cours', columns='certifie', values='nombre', fill_value=0)
-    pivot_percent = pivot.div(pivot.sum(axis=1), axis=0) * 100
+    # Création du tableau croisé brut (effectifs)
+    contingency = df.pivot_table(index='format_cours', columns='certifie', values='nombre', fill_value=0)
+
+    # Calcul des pourcentages pour la visualisation
+    pivot_percent = contingency.div(contingency.sum(axis=1), axis=0) * 100
+
+    # Visualisation des taux de certification
     fig = px.bar(pivot_percent.reset_index(), x='format_cours', y=['oui', 'non'],
                  title="Taux de certification selon le format de cours",
                  labels={'value': 'Pourcentage', 'format_cours': 'Format de cours'},
                  barmode='stack')
+
+    # Test du Khi² d’indépendance
+    chi2, pval, dof, expected = chi2_contingency(contingency)
+
     taux_presentiel = pivot_percent.loc['presentiel', 'oui'] if 'presentiel' in pivot_percent.index else 0
     taux_distanciel = pivot_percent.loc['distanciel', 'oui'] if 'distanciel' in pivot_percent.index else 0
+
+    # Conclusion adaptée aux décideurs
     conclusion = (
         f"En présentiel, environ {taux_presentiel:.1f}% des apprenants ont obtenu la certification, "
         f"contre {taux_distanciel:.1f}% en distanciel. "
-        "Cela suggère que le format présentiel est potentiellement plus favorable à la réussite."
+        f"Le test du Khi² indique que cette différence est {'significative' if pval < 0.05 else 'non significative'} "
+        f"(p = {'< 0.0001' if pval < 0.0001 else f'{pval:.4f}'}). "
+        + ("Le format du cours influence donc fortement les résultats obtenus."
+           if pval < 0.05 else
+           "Il n’y a pas de lien statistique démontré entre le format de cours et la réussite.")
     )
+
     return fig, conclusion
 
 # 3. Comparaison notes mi-parcours classes A vs B
