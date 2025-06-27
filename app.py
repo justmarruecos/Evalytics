@@ -15,7 +15,7 @@ server = app.server  # nécessaire pour déploiement éventuel
 def serve_layout():
     """Génère le layout dynamique à chaque ouverture, en rechargeant les données."""
     # 1. Chargement des données depuis le JSON en ligne, avec repli local
-    datasets = load_data(source="local")
+    datasets = load_data(source="url")
     if not datasets or "studyCorrelation" not in datasets:
         print("⚠️ Échec du chargement en ligne, utilisation des données locales.")
         datasets = load_data(source="local")

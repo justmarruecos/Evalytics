@@ -1,12 +1,18 @@
 import pandas as pd
 import json
+import requests  # Pour charger proprement le JSON depuis l'URL
 
 
 def load_data(source="local"):
+    """
+    Charge les données depuis un fichier local ou une URL, puis transforme chaque bloc en DataFrame.
+    """
     if source == "url":
-        url = "https://edumail.fr/formations/realtimedata.json"
+        url = "https://rnddf-185-226-32-80.a.free.pinggy.link/data"
         try:
-            data = pd.read_json(url)
+            response = requests.get(url)
+            response.raise_for_status()  # Lève une erreur si l'URL échoue (ex : 404)
+            data = json.loads(response.text)  # Convertit le texte JSON en dictionnaire Python
         except Exception as e:
             print("Erreur de chargement depuis l'URL :", e)
             return {}
@@ -20,21 +26,25 @@ def load_data(source="local"):
 
     datasets = {}
 
-    # 1. Corrélation : convertir en DataFrame et renommer colonnes
+    # === 1. Corrélation heures / score ===
     sc = pd.DataFrame(data.get("studyCorrelation", []))
     sc.rename(columns={"hours": "heures_etude", "score": "score_final"}, inplace=True)
     datasets["studyCorrelation"] = sc
 
-    # 2. Format cours
+    # === 2. Format cours (présentiel/distanciel) ===
     cf = data.get("courseFormat", {})
     df_cf = []
     for format_type, stats in cf.items():
         for status, count in stats.items():
             certifie = "oui" if status == "pass" else "non"
-            df_cf.append({"format_cours": format_type, "certifie": certifie, "nombre": count})
+            df_cf.append({
+                "format_cours": format_type,
+                "certifie": certifie,
+                "nombre": count
+            })
     datasets["courseFormat"] = pd.DataFrame(df_cf)
 
-    # 3. Mi-parcours
+    # === 3. Mi-parcours classes A vs B ===
     midterm = data.get("midtermScores", {})
     a_scores = midterm.get("class_A", [])
     b_scores = midterm.get("class_B", [])
@@ -44,7 +54,7 @@ def load_data(source="local"):
     })
     datasets["midtermScores"] = df_mid
 
-    # 4. Approche pédagogique
+    # === 4. Progression selon méthode pédagogique ===
     ap = data.get("approachGains", {})
     rows = []
     for methode, gains in ap.items():
@@ -52,7 +62,7 @@ def load_data(source="local"):
             rows.append({"methode": methode, "progression": val})
     datasets["approachGains"] = pd.DataFrame(rows)
 
-    # 5. Temps d’achèvement
+    # === 5. Temps d’achèvement selon support pédagogique ===
     ct = data.get("completionTimes", {})
     rows = []
     for niveau, temps in ct.items():
